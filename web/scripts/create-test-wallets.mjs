@@ -1,0 +1,15 @@
+import { generatePrivateKey, privateKeyToAccount } from "viem/accounts";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+const target = new URL("../.env.test-wallets", import.meta.url);
+if (existsSync(target)) throw new Error("Test wallets already exist; keep the existing keys.");
+const approvedKey = generatePrivateKey();
+const visitorKey = generatePrivateKey();
+const approved = privateKeyToAccount(approvedKey).address;
+const visitor = privateKeyToAccount(visitorKey).address;
+writeFileSync(target, `# Disposable presentation wallets only. Do not use for real funds.\nAPPROVED_ADDRESS=${approved}\nAPPROVED_PRIVATE_KEY=${approvedKey}\n\nUNAPPROVED_ADDRESS=${visitor}\nUNAPPROVED_PRIVATE_KEY=${visitorKey}\n`, { flag: "wx" });
+const envURL = new URL("../.env.local", import.meta.url);
+let env = existsSync(envURL) ? readFileSync(envURL, "utf8") : "";
+if (/^ANCHOR_ALLOWED_WALLETS=\s*$/m.test(env)) env = env.replace(/^ANCHOR_ALLOWED_WALLETS=\s*$/m, `ANCHOR_ALLOWED_WALLETS=${approved}`);
+else if (!/^ANCHOR_ALLOWED_WALLETS=/m.test(env)) env += `\nANCHOR_ALLOWED_WALLETS=${approved}\n`;
+writeFileSync(envURL, env);
+console.log(JSON.stringify({ approved, unapproved: visitor, keysFile: '.env.test-wallets', network: 'Polygon Amoy', chainId: 80002 }));

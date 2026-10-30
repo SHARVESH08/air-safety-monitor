@@ -3,67 +3,13 @@
 // It only polls /api/state for the hidden remote's button presses, plus Open-Meteo for real weather.
 import { useEffect, useRef, useState } from "react";
 import { createSimulator, step, classify, THRESHOLDS } from "../lib/simulator";
+import BlockchainPanel from "./BlockchainPanel";
 
 const LAT = 12.8406;
 const LON = 80.1534;
 const WEATHER_URL = `https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,relative_humidity_2m,surface_pressure,weather_code&timezone=Asia%2FKolkata`;
 const HISTORY_S = 120;
 const BATCH_S = 30;
-const BATCH_EPOCH = Date.UTC(2026, 9, 28); // batch numbers count 30 s windows since this date
-const EXPLORER = "https://amoy.polygonscan.com";
-
-async function sha256Hex(text) {
-  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(text));
-  return "0x" + [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-function short(hex, a = 6, b = 4) {
-  return hex ? `${hex.slice(0, a)}…${hex.slice(-b)}` : "—";
-}
-
-function ChainPanel({ chain, submitting }) {
-  return (
-    <div className="panel chain">
-      <h2>
-        Blockchain anchoring · Polygon Amoy
-        {chain?.wallet && (
-          <a className="addr" href={`${EXPLORER}/address/${chain.wallet}`} target="_blank" rel="noreferrer">
-            {short(chain.wallet)}
-          </a>
-        )}
-      </h2>
-      <div className="chainmeta">
-        <span>Block {chain?.latestBlock ?? "—"}</span>
-        <span>Balance {chain?.balance != null ? `${chain.balance.toFixed(4)} POL` : "—"}</span>
-        <span>{submitting ?? `SHA-256 of each ${BATCH_S} s batch signed by device key`}</span>
-      </div>
-      <table>
-        <thead>
-          <tr><th>Time</th><th>Type</th><th>Batch</th><th>Tx hash</th><th>Data hash</th><th>Fee (POL)</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-          {(chain?.txs ?? []).map((tx) => (
-            <tr key={tx.hash}>
-              <td>{istTime(tx.sentAt)}</td>
-              <td className={tx.kind === "alert" ? "lvl-DANGER" : ""}>{tx.kind === "alert" ? "ALERT" : "BATCH"}</td>
-              <td>#{tx.batch}</td>
-              <td><a href={`${EXPLORER}/tx/${tx.hash}`} target="_blank" rel="noreferrer">{short(tx.hash, 10, 6)}</a></td>
-              <td>{short(tx.dataHash, 8, 4)}</td>
-              <td>{tx.fee != null ? tx.fee.toFixed(5) : "—"}</td>
-              <td className={tx.block ? (tx.ok ? "lvl-SAFE" : "lvl-DANGER") : "lvl-CAUTION"}>
-                {tx.block ? (tx.ok ? `✓ ${tx.confirmations ?? ""} conf · #${tx.block}` : "Reverted") : "Pending…"}
-              </td>
-            </tr>
-          ))}
-          {chain && !chain.txs.length && (
-            <tr><td colSpan={7} style={{ color: "var(--muted)" }}>Waiting for first batch…</td></tr>
-          )}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function describeWeather(code) {
   if (code === 0) return "Clear";
   if (code <= 3) return "Partly cloudy";
@@ -160,35 +106,11 @@ export default function Dashboard() {
   const [history, setHistory] = useState([]);
   const [log, setLog] = useState([]);
   const [now, setNow] = useState(0);
-  const [chain, setChain] = useState(null);
-  const [submitting, setSubmitting] = useState(null);
+  const [anchorBatch, setAnchorBatch] = useState(null);
   const batchBuffer = useRef([]);
-
-  // On-chain log (shared by every open dashboard)
-  useEffect(() => {
-    let alive = true;
-    async function poll() {
-      try {
-        setChain(await (await fetch("/api/anchor", { cache: "no-store" })).json());
-      } catch {}
-      if (alive) setTimeout(poll, 4000);
-    }
-    poll();
-    return () => { alive = false; };
-  }, []);
-
-  async function submitAnchor(kind, rows, level) {
-    const serverNow = Date.now() + clockOffset.current;
-    const batch = Math.floor((serverNow - BATCH_EPOCH) / (BATCH_S * 1000));
-    const dataHash = await sha256Hex(JSON.stringify(rows));
-    setSubmitting(kind === "alert" ? "Signing ALERT transaction…" : `Signing batch #${batch}…`);
-    try {
-      await fetch("/api/anchor", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, batch, dataHash, level, count: rows.length }) });
-      setChain(await (await fetch("/api/anchor", { cache: "no-store" })).json());
-    } catch {}
-    setSubmitting(null);
+  function submitAnchor(kind, rows) {
+    setAnchorBatch({ kind, rows });
   }
-
   // Remote button state
   useEffect(() => {
     let alive = true;
@@ -264,7 +186,7 @@ export default function Dashboard() {
     return () => clearInterval(id);
   }, []);
 
-  const status = reading ? classify(reading) : { level: "SAFE", reasons: ["Connecting to device…"] };
+  const status = reading ? classify(reading) : { level: "SAFE", reasons: ["Starting simulator…"] };
   const sinceMs = now && lastPacket.current ? Math.max(0, Date.now() - lastPacket.current) : null;
   const online = sinceMs !== null && sinceMs < 5000;
   const r = reading;
@@ -274,11 +196,11 @@ export default function Dashboard() {
       <header className="top">
         <div className="brand">
           <h1>Confined-Space Air Safety Monitor</h1>
-          <p>Node AQ-01 · ESP32-WROOM-32 · MQ135 · BMP280 · LDR · HC-SR04 · DS3231</p>
+          <p>SIMULATED DATA · Node AQ-01 · ESP32-WROOM-32 · MQ135 · BMP280 · LDR · HC-SR04 · DS3231</p>
         </div>
         <div className="meta">
           <div>
-            <div className="k">Device</div>
+            <div className="k">Simulation remote</div>
             <div className="v"><span className={`dot ${online ? "" : "off"}`} />{online ? `Online · ${(sinceMs / 1000).toFixed(1)} s ago` : "Reconnecting…"}</div>
           </div>
           <div>
@@ -321,7 +243,7 @@ export default function Dashboard() {
           <GasChart history={history} />
         </div>
         <div className="panel">
-          <h2>Packets received</h2>
+          <h2>Simulated readings</h2>
           <table>
             <thead>
               <tr><th>#</th><th>Time</th><th>ppm</th><th>lux</th><th>Space</th><th>State</th></tr>
@@ -342,7 +264,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <ChainPanel chain={chain} submitting={submitting} />
+      <BlockchainPanel batch={anchorBatch} />
 
       <div className="foot">{LAT.toFixed(4)}° N, {LON.toFixed(4)}° E · Vandalur–Kelambakkam Rd · sample rate 1 Hz</div>
     </div>
