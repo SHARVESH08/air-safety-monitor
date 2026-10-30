@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import TamperDemo from "./TamperDemo";
+import InterferenceMonitor from "./InterferenceMonitor";
 import { buildPayload, encodePayload, EXPLORER, CHAIN_HEX, HASH_RE, normalizeRows } from "../lib/protocol.mjs";
 
 const short = value => value ? `${value.slice(0, 8)}…${value.slice(-6)}` : "—";
@@ -164,7 +164,7 @@ export default function BlockchainPanel({ batch }) {
   const approved = account && chain?.allowedWallets.includes(account.toLowerCase());
   const openAlerts = allAlerts.filter(a => !acknowledged.includes(a.id));
   return <section className="blockchain-monitor" aria-label="Blockchain monitoring">
-    <TamperDemo />
+    <InterferenceMonitor />
     <div className="panel chain wallet-panel">
       <div className="section-heading"><div><h2>Evidence & blockchain</h2><p>Polygon Amoy testnet · SHA-256 batch anchors · MetaMask signing</p></div><span className="pill">SIMULATED SOURCE</span></div>
       <div className="wallet-toolbar">

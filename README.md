@@ -10,8 +10,8 @@ The web application currently generates its sensor readings in the browser. It d
 | --- | --- |
 | `/` | Air readings, chart, MetaMask connection, batch signing, evidence ledger and security alerts |
 | `/interference` | Normal record-access interface: view an anchored batch, propose a changed gas value and inspect the server's verification response |
-| `/interference/demo` | Separate controlled interference console with an isolated sandbox session |
-| `/#interference-demo` | Dashboard monitor for the sandbox console; updates automatically across same-browser tabs |
+| `/interference/console` | Separate controlled interference console with an isolated sandbox session |
+| `/#interference-monitor` | Dashboard monitor for the sandbox console; updates automatically across same-browser tabs |
 | `/remote-8cf2c0d357` | Original remote for changing the generated sensor feed; its public embedded key is not secure authentication |
 
 ## Requirements
@@ -81,16 +81,16 @@ This verifies an edited off-chain copy against immutable on-chain evidence. The 
 
 Only hashes and metadata are anchored. Keep exported JSON evidence to preserve the original readings independently. The ledger retains the latest 20 registered proofs. Unsigned batch previews are replaced by later batches rather than queued indefinitely.
 
-## Separate interference demonstration
+## Separate interference console
 
 For a presentation without wallet funding or an existing transaction:
 
-1. Open the dashboard and `/interference/demo` in separate tabs in the same browser and on the same origin.
-2. On the separate console, select **Start demo session**.
+1. Open the dashboard and `/interference/console` in separate tabs in the same browser and on the same origin.
+2. On the separate console, select **Start session**.
 3. Keep the proposed value at **999 ppm** and select **Simulate interference**.
 4. The server compares its protected **505 ppm** baseline with the modified sample, returns **HTTP 403**, and restricts that sandbox session. The dashboard automatically shows both hashes, the preserved original and the event timeline.
-5. Select **Try another write** to demonstrate **HTTP 423** for the restricted session.
-6. Select **Reset demonstration** to clear the session in both tabs.
+5. Select **Try another write** to confirm **HTTP 423** for the restricted session.
+6. Select **Reset session** to clear the session in both tabs.
 
 The sandbox uses the same canonical SHA-256 hashing function as the ledger, but its baseline is local server memory and is not anchored on-chain. It changes no real wallet permissions. Sessions expire after 15 minutes and may disappear on server restart; use one local server instance for this presentation.
 
@@ -138,7 +138,7 @@ The suite contains 34 protocol, API and sandbox tests. API tests use a local moc
 - **RPC unavailable:** verify Amoy endpoint access. Integrity is unknown until verification recovers.
 - **Pending transaction dropped or replaced:** export the pending evidence, then use the export-and-clear control before signing again.
 - **No MetaMask provider:** use a browser with the MetaMask extension; an in-app browser may not expose it.
-- **Demo tab not updating:** use the same browser, hostname and port; start a fresh session after a restart or its 15-minute expiry.
+- **Console tab not updating:** use the same browser, hostname and port; start a fresh session after a restart or its 15-minute expiry.
 
 ## Project layout and boundaries
 

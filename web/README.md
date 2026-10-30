@@ -1,6 +1,6 @@
 # AirSafe — monitoring and MetaMask evidence
 
-All sensor readings in this dashboard are simulated by `lib/simulator.js`; it does not receive ESP32 readings. Outdoor weather is fetched separately. The interface now labels the simulated source explicitly. This is a project demonstration, not a calibrated safety system.
+All sensor readings in this dashboard are simulated by `lib/simulator.js`; it does not receive ESP32 readings. Outdoor weather is fetched separately. The interface now labels the simulated source explicitly. This is a project prototype, not a calibrated safety system.
 
 ## Run on Windows
 
@@ -64,7 +64,7 @@ The public registration endpoint has a 64 KB streamed-body bound, strict row val
 
 ## Scope and limitations
 
-These alerts detect inconsistencies in submitted/retained evidence. They cannot detect every attempt to compromise a blockchain, observe arbitrary external wallet transactions, recover deleted database history, prevent a malicious approved signer from anchoring fabricated measurements, or prove sensor truth. The web simulator and its original remote controls are not authenticated hardware ingestion. The original remote remains `/remote-8cf2c0d357`; its embedded demo key is public source code and is not an access-control boundary.
+These alerts detect inconsistencies in submitted/retained evidence. They cannot detect every attempt to compromise a blockchain, observe arbitrary external wallet transactions, recover deleted database history, prevent a malicious approved signer from anchoring fabricated measurements, or prove sensor truth. The web simulator and its original remote controls are not authenticated hardware ingestion. The original remote remains `/remote-8cf2c0d357`; its embedded key is public source code and is not an access-control boundary.
 
 The allowlist is enforced by this app's registration server, not by an on-chain contract. Anybody can make their own blockchain transfers; only approved matching proofs enter this app's ledger. RPC data is trusted; a compromised RPC/server/browser, erased ledger, stolen approved wallet, or altered application code requires independent monitoring and operational controls. Keep exports and explorer links outside this app. Confirmations are shown, not claimed as irreversible finality.
 
@@ -78,17 +78,17 @@ The allowlist is enforced by this app's registration server, not by an on-chain 
 
 MetaMask integration follows the [official provider API](https://docs.metamask.io/metamask-connect/evm/reference/provider-api/). Wallet actions and testnet transactions require manual confirmation in a real MetaMask extension. Automated fixtures do not certify a live wallet, Redis deployment, physical device or blockchain network.
 
-## Presentation: demonstrate interference and restriction
+## Presentation: interference detection and restriction
 
-Open `/interference/demo` in a separate tab in the same browser as the main dashboard. Keep the attempted value at 999 ppm and click **Simulate interference** there. The main dashboard contains an **Interference monitor** with no attack controls; it polls the shared sandbox session once per second. The server captures an original 505 ppm sample, recomputes the modified sample's SHA-256, rejects the mismatch with HTTP 403 and locks that sandbox writer session. The screen shows both hashes, the preserved original and an event timeline. Click **Try another write** to show a server rejection with HTTP 423. Use **Reset demonstration** on the interference console before repeating. The monitor clears automatically. Keep both tabs on the same hostname (for example, `127.0.0.1:3002`); localhost and 127.0.0.1 are different browser origins.
+Open `/interference/console` in a separate tab in the same browser as the main dashboard. Keep the attempted value at 999 ppm and click **Simulate interference** there. The main dashboard contains an **Interference monitor** with no attack controls; it polls the shared sandbox session once per second. The server captures an original 505 ppm sample, recomputes the modified sample's SHA-256, rejects the mismatch with HTTP 403 and locks that sandbox writer session. The screen shows both hashes, the preserved original and an event timeline. Click **Try another write** to show a server rejection with HTTP 423. Use **Reset session** on the interference console before repeating. The monitor clears automatically. Keep both tabs on the same hostname (for example, `127.0.0.1:3002`); localhost and 127.0.0.1 are different browser origins.
 
-This isolated demonstration works without MetaMask, POL or RPC access. It uses the same canonical hashing function as the ledger, but the baseline is held in an expiring server sandbox, not anchored on-chain. It does not change production evidence or the approved-wallet list. Sessions expire after 15 minutes and may disappear on server restart or differ across serverless instances; run locally for presentations. The restriction belongs to this demo session, not a real person, wallet or blockchain node.
+This isolated sandbox works without MetaMask, POL or RPC access. It uses the same canonical hashing function as the ledger, but the baseline is held in an expiring server sandbox, not anchored on-chain. It does not change production evidence or the approved-wallet list. Sessions expire after 15 minutes and may disappear on server restart or differ across serverless instances; run locally for presentations. The restriction belongs to this sandbox session, not a real person, wallet or blockchain node.
 
-Presentation wording: "I am simulating an attempt to replace a recorded value. The system detects a different hash, rejects the altered sample, preserves the original, and restricts further writes from this demo session."
+Presentation wording: "I am simulating an attempt to replace a recorded value. The system detects a different hash, rejects the altered sample, preserves the original, and restricts further writes from this sandbox session."
 
 ## MetaMask accounts and actual record-access screen
 
-`/interference` is the normal record-access screen. It reads registered on-chain anchors, lets a viewer propose a changed gas value, and submits the edited evidence to the actual `/api/anchor` verifier. It displays the returned HTTP status and message. It does not manufacture a breach or claim that a self-transfer's immutable calldata can be edited. The original sandbox presentation remains separately available at `/interference/demo`.
+`/interference` is the normal record-access screen. It reads registered on-chain anchors, lets a viewer propose a changed gas value, and submits the edited evidence to the actual `/api/anchor` verifier. It displays the returned HTTP status and message. It does not manufacture a breach or claim that a self-transfer's immutable calldata can be edited. The sandbox console remains separately available at `/interference/console`.
 
 Generate fresh disposable wallets locally with `node scripts/create-test-wallets.mjs` after copying `.env.example` to `.env.local`. Their addresses and import private keys are written to `.env.test-wallets`, which is ignored by Git and is not distributed with the repository. The script fills an empty `ANCHOR_ALLOWED_WALLETS` with the approved account; an existing allowlist is preserved. Import each account into the MetaMask browser extension using its private key. Use Polygon Amoy (chain ID 80002), obtain testnet POL for the approved wallet, and sign/register one batch on the dashboard. Do not use these presentation accounts for real assets. No existing user wallet or recovery phrase is needed.
 
