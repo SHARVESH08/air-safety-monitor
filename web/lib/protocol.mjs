@@ -3,6 +3,8 @@ export const CHAIN_ID = 80002;
 export const CHAIN_HEX = "0x13882";
 export const EXPLORER = "https://amoy.polygonscan.com";
 export const HASH_RE = /^0x[0-9a-fA-F]{64}$/;
+// Fixed unowned recipient: MetaMask rejects dapp transactions with data sent to the wallet's own accounts.
+export const ANCHOR_SINK = "0x000000000000000000000000000000000000dEaD";
 const levels = ["SAFE", "CAUTION", "DANGER"];
 export function normalizeRows(rows) {
   if (!Array.isArray(rows) || rows.length < 1 || rows.length > 60) throw new Error("Provide 1–60 readings.");
@@ -39,7 +41,7 @@ export function inspectEvidence(entry, tx, receipt, block, allowedWallets) {
   try {
     const p = decodePayload(tx.input);
     const expected = buildPayload(entry.rows, p.kind, p.ts);
-    if (tx.hash.toLowerCase() !== entry.hash.toLowerCase() || tx.to?.toLowerCase() !== tx.from.toLowerCase() || tx.value !== 0n ||
+    if (tx.hash.toLowerCase() !== entry.hash.toLowerCase() || tx.to?.toLowerCase() !== ANCHOR_SINK.toLowerCase() || tx.value !== 0n ||
       (tx.chainId !== undefined && Number(tx.chainId) !== CHAIN_ID) ||
       (entry.signer && tx.from.toLowerCase() !== entry.signer.toLowerCase()) ||
       (entry.payload && encodePayload(entry.payload) !== encodePayload(p)) ||

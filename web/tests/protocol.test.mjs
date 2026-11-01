@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildPayload, encodePayload, hashRows, inspectEvidence, normalizeRows } from "../lib/protocol.mjs";
+import { buildPayload, encodePayload, hashRows, inspectEvidence, normalizeRows, ANCHOR_SINK } from "../lib/protocol.mjs";
 const signer = "0x1111111111111111111111111111111111111111";
 const rows = [{ t: 1800000000, gas: 505, o2: 20.9, lux: 312, confined: false, c: 30.4, hpa: 1008.6, level: "SAFE" }];
 const payload = buildPayload(rows, "batch", 1800000000);
@@ -8,7 +8,7 @@ const hash = "0x" + "ab".repeat(32), blockHash = "0x" + "cd".repeat(32);
 function fixture() {
   return {
     entry: { hash, rows: structuredClone(rows), payload: structuredClone(payload), signer, blockHash },
-    tx: { hash, from: signer, to: signer, input: encodePayload(payload), value: 0n, chainId: 80002, blockHash },
+    tx: { hash, from: signer, to: ANCHOR_SINK, input: encodePayload(payload), value: 0n, chainId: 80002, blockHash },
     receipt: { status: "success", blockHash }, block: { hash: blockHash, timestamp: 1800000001n }
   };
 }

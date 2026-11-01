@@ -1,11 +1,12 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import InterferenceMonitor from "./InterferenceMonitor";
-import { buildPayload, encodePayload, EXPLORER, CHAIN_HEX, HASH_RE, normalizeRows } from "../lib/protocol.mjs";
+import { buildPayload, encodePayload, EXPLORER, CHAIN_HEX, HASH_RE, normalizeRows, ANCHOR_SINK } from "../lib/protocol.mjs";
 
 const short = value => value ? `${value.slice(0, 8)}…${value.slice(-6)}` : "—";
 const time = value => new Date(value).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", hour12: false });
 const PENDING_KEY = "airsafe:pending:v2";
+const MIN_TIP_WEI = 30_000_000_000n;
 function download(proof) {
   const url = URL.createObjectURL(new Blob([JSON.stringify(proof, null, 2)], { type: "application/json" }));
   const a = document.createElement("a"); a.href = url; a.download = `airsafe-${proof.hash}.json`; a.click();
@@ -97,7 +98,7 @@ export default function BlockchainPanel({ batch }) {
       try { await provider.request({ method: "wallet_switchEthereumChain", params: [{ chainId: CHAIN_HEX }] }); }
       catch (e) {
         if (e.code !== 4902) throw e;
-        await provider.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Polygon Amoy Testnet", nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 }, rpcUrls: ["https://rpc-amoy.polygon.technology"], blockExplorerUrls: [EXPLORER] }] });
+        await provider.request({ method: "wallet_addEthereumChain", params: [{ chainId: CHAIN_HEX, chainName: "Polygon Amoy Testnet", nativeCurrency: { name: "POL", symbol: "POL", decimals: 18 }, rpcUrls: ["https://polygon-amoy-bor-rpc.publicnode.com", "https://rpc-amoy.polygon.technology"], blockExplorerUrls: [EXPLORER] }] });
       }
       setNetwork(await provider.request({ method: "eth_chainId" }));
     } catch (e) { setError(e.code === 4001 ? "Network request declined." : e.message); }
@@ -136,8 +137,15 @@ export default function BlockchainPanel({ batch }) {
       if (data.rpc !== "online") throw new Error("Server cannot verify the chain. Try again when RPC access recovers.");
       const rows = normalizeRows(batch.rows);
       const payload = buildPayload(rows, batch.kind);
+      // Amoy rejects tips below 25 gwei; MetaMask's fallback estimate (1.5 gwei) can fall under that floor.
+      const [latest, suggestedTip] = await Promise.all([
+        provider.request({ method: "eth_getBlockByNumber", params: ["latest", false] }),
+        provider.request({ method: "eth_maxPriorityFeePerGas" }).catch(() => "0x0"),
+      ]);
+      const tip = BigInt(suggestedTip) > MIN_TIP_WEI ? BigInt(suggestedTip) : MIN_TIP_WEI;
+      const maxFee = BigInt(latest?.baseFeePerGas || "0x0") * 2n + tip;
       setMessage("Review the zero-value testnet transaction in MetaMask. A network fee applies.");
-      const hash = await provider.request({ method: "eth_sendTransaction", params: [{ from, to: from, value: "0x0", chainId: CHAIN_HEX, data: encodePayload(payload) }] });
+      const hash = await provider.request({ method: "eth_sendTransaction", params: [{ from, to: ANCHOR_SINK, value: "0x0", chainId: CHAIN_HEX, data: encodePayload(payload), maxPriorityFeePerGas: `0x${tip.toString(16)}`, maxFeePerGas: `0x${maxFee.toString(16)}` }] });
       const proof = { hash, rows }; remember(proof);
       setMessage("Transaction submitted. Register evidence after it is mined; no second signature is needed.");
       await registerProof(proof);

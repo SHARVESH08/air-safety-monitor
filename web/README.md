@@ -18,7 +18,7 @@ Open http://localhost:3000. Install the MetaMask browser extension and use a tes
 
 1. Click **Connect MetaMask** and approve the connection.
 2. Click **Switch to Amoy**, if prompted. The app uses Polygon Amoy, chain ID 80002 (`0x13882`), with POL as its gas token. Fund the wallet with testnet POL.
-3. Wait about 30 seconds for a simulated batch, then click **Sign latest batch**. Review the self-addressed, zero-value transaction and gas fee in MetaMask. Signing is explicit; the simulator never requests signatures automatically.
+3. Wait about 30 seconds for a simulated batch, then click **Sign latest batch**. Review the zero-value transaction to the unowned anchor address `0x…dEaD` and gas fee in MetaMask. Signing is explicit; the simulator never requests signatures automatically.
 4. After mining, use **Retry registration** if the initial registration happened too early. This verifies the existing transaction and does not send another one.
 5. Inspect the ledger and export JSON evidence. Import an export later to reverify it or restore it to the retained ledger. Do not edit exported rows if you want them to verify.
 
@@ -26,9 +26,9 @@ A DANGER transition prepares an alert batch for signing; later batches can repla
 
 ## What is anchored
 
-The original repository used zero-value self-transfers with hashes in calldata. This implementation keeps that mechanism; no smart contract deployment is required. MetaMask signs a v2 JSON payload containing the source (`sim`), device identifier, batch, count, severity, timestamp and SHA-256 of canonical reading rows. Only the digest and metadata are public on-chain; exported rows and server evidence are off-chain.
+The original repository used zero-value self-transfers with hashes in calldata. MetaMask now rejects website transactions that send data to the wall.s own account, so anchors go to the fixed unowned address `0x000000000000000000000000000000000000dEaD` instead; no smart contract deployment is required. MetaMask signs a v2 JSON payload containing the source (`sim`), device identifier, batch, count, severity, timestamp and SHA-256 of canonical reading rows. Only the digest and metadata are public on-chain; exported rows and server evidence are off-chain.
 
-The server accepts an anchor only after checking its successful receipt, current canonical block, zero value, self-recipient, approved transaction signer and exact payload/digest against the submitted rows. The browser address alone is never treated as authentication. Registration is idempotent for retained transaction hashes. Old v1 anchors are not silently reported as verified v2 evidence.
+The server accepts an anchor only after checking its successful receipt, current canonical block, zero value, the fixed anchor recipient, approved transaction signer and exact payload/digest against the submitted rows. The browser address alone is never treated as authentication. Registration is idempotent for retained transaction hashes. Old v1 anchors are not silently reported as verified v2 evidence.
 
 ## Security alerts
 
