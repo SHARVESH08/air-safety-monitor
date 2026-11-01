@@ -36,10 +36,11 @@
 #include <RTClib.h>
 #include <ESP32Servo.h>
 #include "mbedtls/md.h"
+#include "secrets.h"   // copy secrets.example.h to secrets.h and set your Wi-Fi
 
 // =================== 1. YOUR SETTINGS (edit these) ===================
-const char* WIFI_SSID     = "YOUR_WIFI_NAME";
-const char* WIFI_PASSWORD = "YOUR_WIFI_PASSWORD";
+const char* WIFI_SSID     = WIFI_SSID_VALUE;
+const char* WIFI_PASSWORD = WIFI_PASSWORD_VALUE;
 // IP of the laptop running the server (it prints this when it starts).
 // Laptop and ESP32 must be on the same Wi-Fi / hotspot.
 const char* SERVER_URL    = "http://192.168.1.100:3000/api/readings";
